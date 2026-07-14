@@ -64,6 +64,7 @@ const filterToggle = document.getElementById("filterToggle");
 const randomBtn = document.getElementById("randomBtn");
 const favBtn = document.getElementById("favBtn");
 
+let allPosts = [];
 let posts = [];
 let showingFavs = false;
 
@@ -90,12 +91,12 @@ function isCleanPost(post, filterOn) {
 
 async function loadMemes() {
   status.textContent = "Lade Memes...";
+  if (allPosts.length === 0) {
+    const res = await fetch("memes.json");
+    allPosts = await res.json();
+  }
   const sub = subredditSel.value;
-  const target = `https://www.reddit.com/r/${sub}/hot.json?limit=50&raw_json=1`;
-  // ponytail: kostenloser Public-Proxy, kein SLA/Rate-Limit-Garantie - bei Ausfall auf anderen Proxy wechseln (z.B. api.allorigins.win)
-  const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(target)}`);
-  const data = await res.json();
-  posts = data.data.children.map(c => c.data);
+  posts = allPosts.filter(p => p.subreddit.toLowerCase() === sub.toLowerCase());
   render();
 }
 
