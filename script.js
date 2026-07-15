@@ -67,147 +67,73 @@ function isCleanPost(post, filterOn) {
 
 
 // Meme Loader mit Cache
-async function loadMemes(amount = 5) {
+async function loadMemes() {
   if (loading) return;
 
   loading = true;
-
-  if (memeCache.length === 0) {
-    status.textContent = "Lade Memes...";
-  }
-
 
   try {
     const sub = subredditSel.value;
     const filterOn = filterToggle.checked;
 
     let loaded = [];
-let attempts = 0;
+    let attempts = 0;
 
-while (loaded.length < 100 && attempts < 20) {
+    while (loaded.length < 100 && attempts < 20) {
+      attempts++;
 
-  attempts++;
+      try {
+        const res = await fetch(
+          `https://meme-api.com/gimme/${sub}/50`
+        );
 
-  try {
+        const data = await res.json();
 
-    const res = await fetch(
-      `https://meme-api.com/gimme/${sub}/50`
-    );
+        if (!data.memes) continue;
 
-    const data = await res.json();
+        for (const m of data.memes) {
+          const post = {
+            ...m,
+            id: m.postLink
+          };
 
-    if (!data.memes) continue;
+          if (
+            !seenMemes.has(post.id) &&
+            isCleanPost(post, filterOn)
+          ) {
+            seenMemes.add(post.id);
+            loaded.push(post);
+          }
 
+          if (loaded.length >= 100) break;
+        }
 
-    for (const m of data.memes) {
-
-      const post = {
-        ...m,
-        id: m.postLink
-      };
-
-
-      if (
-        !seenMemes.has(post.id) &&
-        isCleanPost(post, filterOn)
-      ) {
-
-        seenMemes.add(post.id);
-        loaded.push(post);
-
+      } catch (err) {
+        console.warn("Pack Fehler:", err);
       }
-
-
-      if (loaded.length >= 100) {
-        break;
-      }
-
-    }  } catch (err) {
-
-    console.warn(
-      "Meme-Pack konnte nicht geladen werden:",
-      err
-    );
-
-  }
-
-} // while Ende
-
-
-loaded.sort(() => Math.random() - 0.5);
-
-
-memeCache.push(...loaded);
-
-
-if (memeCache.length > 1000) {
-  memeCache = memeCache.slice(-1000);
-}
-
-
-posts = memeCache;
-
-
-if (index >= posts.length) {
-  index = 0;
-}
-
-
-render();
-
-
-} catch (err) {
-
-  console.error(err);
-  status.textContent = "Fehler beim Laden.";
-
-}
-
-
-loading = false;
-
-
-
-  } catch (err) {
-
-    console.warn(
-      "Meme-Pack konnte nicht geladen werden:",
-      err
-    );
-
-  }
+    }
 
     loaded.sort(() => Math.random() - 0.5);
 
-
     memeCache.push(...loaded);
-
 
     if (memeCache.length > 1000) {
       memeCache = memeCache.slice(-1000);
     }
 
-
     posts = memeCache;
-
-    if (index >= posts.length) {
-      index = 0;
-    }
-
+    index = 0;
 
     render();
 
-
   } catch (err) {
-
     console.error(err);
     status.textContent = "Fehler beim Laden.";
-
   }
-
 
   loading = false;
 }
+
 function currentList() {
   if (!showingFavs) return posts;
 
