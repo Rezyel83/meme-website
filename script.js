@@ -21,6 +21,8 @@ const BLACKLIST = [
   "drug",
   "cocaine",
   "weed",
+  "alcohol",
+  "drunk",
   "gun",
   "shoot",
   "blood",
@@ -28,6 +30,24 @@ const BLACKLIST = [
   "bitch",
   "whore",
   "slut",
+  // deutsch
+  "sex",
+  "porno",
+  "nackt",
+  "titten",
+  "arsch",
+  "schwanz",
+  "muschi",
+  "töten",
+  "mord",
+  "selbstmord",
+  "droge",
+  "koks",
+  "kokain",
+  "waffe",
+  "hure",
+  "fotze",
+  "nutte",
 ];
 
 const grid = document.getElementById("grid");
