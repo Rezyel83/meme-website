@@ -1,21 +1,23 @@
-* { box-sizing: border-box; }
 
-body {
+html, body {
   margin: 0;
+  height: 100%;
+  overflow: hidden;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #123a5c;
-  color: #fff8f0;
+  background: #2b0a05;
+  color: #fff3e6;
 }
 
 header {
-  padding: 1.5rem;
+  padding: 1.2rem;
   text-align: center;
-  background: #0d2c47;
+  background: #3d0f05;
+  border-bottom: 3px solid #ff5722;
 }
 
 h1 {
-  margin: 0 0 1rem;
-  color: #ff7a29;
+  margin: 0 0 0.75rem;
+  color: #ff5722;
   letter-spacing: 1px;
 }
 
@@ -36,76 +38,88 @@ select, button {
 }
 
 button {
-  background: #ff7a29;
-  color: #0d2c47;
+  background: #ff5722;
+  color: #2b0a05;
   font-weight: bold;
 }
 
-button:hover { background: #ffb273; }
+button:hover { background: #ff8a50; }
 
 .switch {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: #1e4c73;
+  background: #57190a;
   padding: 0.5rem 1rem;
   border-radius: 8px;
 }
 
-main {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-  padding: 1.5rem;
+#viewer {
+  height: calc(100vh - 130px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
 }
 
-.card {
-  background: #1e4c73;
-  border-radius: 12px;
+.nav-arrow {
+  background: #57190a;
+  color: #ff8a50;
+  font-size: 1.4rem;
+  width: 3rem;
+  height: 2.2rem;
+  border-radius: 10px;
+}
+.nav-arrow:hover { background: #ff5722; color: #2b0a05; }
+
+#card {
+  background: #3d0f05;
+  border: 2px solid #ff5722;
+  border-radius: 16px;
   overflow: hidden;
+  max-width: 500px;
+  width: 100%;
+  max-height: calc(100vh - 220px);
   display: flex;
   flex-direction: column;
 }
 
-.card img {
+#card img {
   width: 100%;
-  display: block;
-  max-height: 320px;
-  object-fit: cover;
+  max-height: 65vh;
+  object-fit: contain;
+  background: #1a0603;
 }
 
-.card .body {
+#card .body {
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
-.card .title {
-  font-size: 0.9rem;
+#card .title {
+  font-size: 0.95rem;
 }
 
-.card .row {
+#card .row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.85rem;
-  color: #ffb273;
+  color: #ff8a50;
 }
 
 .heart {
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   background: none;
 }
 
-.heart.active { filter: none; }
-
-#status {
+#status, #hint {
   text-align: center;
-  color: #ffb273;
-}
-
-.card.highlight {
-  outline: 3px solid #ff7a29;
+  color: #ff8a50;
+  margin: 0.3rem 0;
 }

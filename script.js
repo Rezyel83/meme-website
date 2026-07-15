@@ -1,64 +1,28 @@
 // Wörter hier rein/raus - Kleinschreibung, ein Wort pro Zeile
 const BLACKLIST = [
-  "nazi",
-  "hitler",
-  "nigger",
-  "faggot",
-  "retard",
-  "rape",
-  "sex",
-  "porn",
-  "nude",
-  "naked",
-  "boobs",
-  "ass",
-  "dick",
-  "penis",
-  "vagina",
-  "kill",
-  "murder",
-  "suicide",
-  "drug",
-  "cocaine",
-  "weed",
-  "alcohol",
-  "drunk",
-  "gun",
-  "shoot",
-  "blood",
-  "gore",
-  "bitch",
-  "whore",
-  "slut",
+  "nazi", "hitler", "nigger", "faggot", "retard", "rape",
+  "sex", "porn", "nude", "naked", "boobs", "ass", "dick", "penis", "vagina",
+  "kill", "murder", "suicide", "drug", "cocaine", "weed", "alcohol", "drunk",
+  "gun", "shoot", "blood", "gore", "fuck", "shit", "bitch", "whore", "slut",
   // deutsch
-  "sex",
-  "porno",
-  "nackt",
-  "titten",
-  "arsch",
-  "schwanz",
-  "muschi",
-  "töten",
-  "mord",
-  "selbstmord",
-  "droge",
-  "koks",
-  "kokain",
-  "waffe",
-  "hure",
-  "fotze",
-  "nutte",
+  "sex", "porno", "nackt", "titten", "arsch", "schwanz", "muschi", "töten",
+  "mord", "selbstmord", "droge", "koks", "kokain", "besoffen", "waffe",
+  "scheiße", "hure", "fotze", "nutte",
 ];
 
-const grid = document.getElementById("grid");
+const card = document.getElementById("card");
 const status = document.getElementById("status");
 const subredditSel = document.getElementById("subreddit");
 const filterToggle = document.getElementById("filterToggle");
-const randomBtn = document.getElementById("randomBtn");
 const favBtn = document.getElementById("favBtn");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const viewer = document.getElementById("viewer");
 
 let posts = [];
+let index = 0;
 let showingFavs = false;
+let wheelLocked = false;
 
 function getFavs() {
   return JSON.parse(localStorage.getItem("favs") || "[]");
@@ -85,64 +49,74 @@ async function loadMemes() {
   const sub = subredditSel.value;
   const res = await fetch(`https://meme-api.com/gimme/${sub}/50`);
   const data = await res.json();
-  posts = data.memes.map(m => ({ ...m, id: m.postLink }));
+  const filterOn = filterToggle.checked;
+  posts = data.memes.map(m => ({ ...m, id: m.postLink })).filter(p => isCleanPost(p, filterOn));
+  index = 0;
   render();
 }
 
-function render() {
-  const filterOn = filterToggle.checked;
+function currentList() {
+  if (!showingFavs) return posts;
   const favs = getFavs();
-  let list = posts.filter(p => isCleanPost(p, filterOn));
-  if (showingFavs) list = list.filter(p => favs.includes(p.id));
+  return posts.filter(p => favs.includes(p.id));
+}
 
-  grid.innerHTML = "";
+function render() {
+  const list = currentList();
   if (list.length === 0) {
+    card.innerHTML = "";
     status.textContent = showingFavs ? "Noch keine Favoriten." : "Keine Memes gefunden.";
     return;
   }
   status.textContent = "";
-
-  for (const p of list) {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.dataset.id = p.id;
-    const isFav = favs.includes(p.id);
-    card.innerHTML = `
-      <img src="${p.url}" alt="${p.title}" loading="lazy">
-      <div class="body">
-        <div class="title">${p.title}</div>
-        <div class="row">
-          <span>⬆ ${p.ups}</span>
-          <button class="heart ${isFav ? "active" : ""}">${isFav ? "❤️" : "🤍"}</button>
-        </div>
-      </div>`;
-    card.querySelector(".heart").addEventListener("click", () => {
-      toggleFav(p.id);
-      render();
-    });
-    grid.appendChild(card);
-  }
+  index = ((index % list.length) + list.length) % list.length;
+  const p = list[index];
+  const favs = getFavs();
+  const isFav = favs.includes(p.id);
+  card.innerHTML = `
+    <img src="${p.url}" alt="${p.title}">
+    <div class="body">
+      <div class="title">${p.title}</div>
+      <div class="row">
+        <span>⬆ ${p.ups}</span>
+        <span>${index + 1} / ${list.length}</span>
+        <button class="heart">${isFav ? "❤️" : "🤍"}</button>
+      </div>
+    </div>`;
+  card.querySelector(".heart").addEventListener("click", () => {
+    toggleFav(p.id);
+    render();
+  });
 }
 
-function showRandom() {
-  const filterOn = filterToggle.checked;
-  const list = posts.filter(p => isCleanPost(p, filterOn));
-  if (list.length === 0) return;
-  const pick = list[Math.floor(Math.random() * list.length)];
-  const el = grid.querySelector(`[data-id="${pick.id}"]`);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.classList.add("highlight");
-    setTimeout(() => el.classList.remove("highlight"), 1500);
-  }
+function move(delta) {
+  if (currentList().length === 0) return;
+  index += delta;
+  render();
 }
+
+prevBtn.addEventListener("click", () => move(-1));
+nextBtn.addEventListener("click", () => move(1));
+
+window.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" || e.key === "ArrowLeft") move(-1);
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") move(1);
+});
+
+viewer.addEventListener("wheel", e => {
+  e.preventDefault();
+  if (wheelLocked) return;
+  wheelLocked = true;
+  move(e.deltaY > 0 ? 1 : -1);
+  setTimeout(() => (wheelLocked = false), 250); // ponytail: fixer debounce statt echtem momentum-tracking, reicht für normales scrollen
+}, { passive: false });
 
 subredditSel.addEventListener("change", loadMemes);
-filterToggle.addEventListener("change", render);
-randomBtn.addEventListener("click", showRandom);
+filterToggle.addEventListener("change", loadMemes);
 favBtn.addEventListener("click", () => {
   showingFavs = !showingFavs;
   favBtn.textContent = showingFavs ? "⬅️ Zurück" : "❤️ Favoriten";
+  index = 0;
   render();
 });
 
