@@ -64,7 +64,6 @@ const filterToggle = document.getElementById("filterToggle");
 const randomBtn = document.getElementById("randomBtn");
 const favBtn = document.getElementById("favBtn");
 
-let allPosts = [];
 let posts = [];
 let showingFavs = false;
 
@@ -78,10 +77,9 @@ function toggleFav(id) {
   localStorage.setItem("favs", JSON.stringify(favs));
 }
 
-// pure & testbar: entscheidet ob ein Reddit-Post gezeigt wird
+// pure & testbar: entscheidet ob ein Meme gezeigt wird
 function isCleanPost(post, filterOn) {
-  if (post.over_18 || post.is_video || post.stickied) return false;
-  if (!/\.(jpg|jpeg|png|gif)$/i.test(post.url || "")) return false; // nur Bilder, keine Videos/Galerien
+  if (post.nsfw || post.spoiler) return false;
   if (filterOn) {
     const title = post.title.toLowerCase();
     if (BLACKLIST.some(w => title.includes(w.toLowerCase()))) return false;
@@ -91,12 +89,10 @@ function isCleanPost(post, filterOn) {
 
 async function loadMemes() {
   status.textContent = "Lade Memes...";
-  if (allPosts.length === 0) {
-    const res = await fetch("memes.json");
-    allPosts = await res.json();
-  }
   const sub = subredditSel.value;
-  posts = allPosts.filter(p => p.subreddit.toLowerCase() === sub.toLowerCase());
+  const res = await fetch(`https://meme-api.com/gimme/${sub}/50`);
+  const data = await res.json();
+  posts = data.memes.map(m => ({ ...m, id: m.postLink }));
   render();
 }
 
@@ -161,11 +157,10 @@ loadMemes();
 
 // Selbst-Check der Filter-Logik (läuft einmal beim Laden, siehe Konsole)
 (function selfCheck() {
-  const clean = { url: "https://i.redd.it/a.jpg", title: "harmless meme", over_18: false, is_video: false, stickied: false };
+  const clean = { url: "https://i.redd.it/a.jpg", title: "harmless meme", nsfw: false, spoiler: false };
   console.assert(isCleanPost(clean, true) === true, "clean post sollte durchgehen");
-  console.assert(isCleanPost({ ...clean, over_18: true }, true) === false, "nsfw sollte raus");
-  console.assert(isCleanPost({ ...clean, is_video: true }, true) === false, "video sollte raus");
-  console.assert(isCleanPost({ ...clean, url: "https://v.redd.it/a.mp4" }, true) === false, "nicht-bild sollte raus");
+  console.assert(isCleanPost({ ...clean, nsfw: true }, true) === false, "nsfw sollte raus");
+  console.assert(isCleanPost({ ...clean, spoiler: true }, true) === false, "spoiler sollte raus");
   console.assert(isCleanPost({ ...clean, title: "NAZI meme" }, true) === false, "blacklist wort sollte raus (filter an)");
   console.assert(isCleanPost({ ...clean, title: "NAZI meme" }, false) === true, "blacklist wort sollte durch (filter aus)");
 })();
