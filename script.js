@@ -46,11 +46,20 @@ function isCleanPost(post, filterOn) {
 
 async function loadMemes() {
   status.textContent = "Lade Memes...";
+
   const sub = subredditSel.value;
-  const res = await fetch(`https://meme-api.com/gimme/${sub}/50`);
+  const res = await fetch(`https://meme-api.com/gimme/${sub}/100`);
   const data = await res.json();
+
   const filterOn = filterToggle.checked;
-  posts = data.memes.map(m => ({ ...m, id: m.postLink })).filter(p => isCleanPost(p, filterOn));
+
+  posts = data.memes
+    .map(m => ({ ...m, id: m.postLink }))
+    .filter(p => isCleanPost(p, filterOn));
+
+  // Zufällig mischen
+  posts.sort(() => Math.random() - 0.5);
+
   index = 0;
   render();
 }
