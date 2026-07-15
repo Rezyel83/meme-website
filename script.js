@@ -63,7 +63,7 @@ function isCleanPost(post, filterOn) {
   }
 
   return true;
-}
+} 
 
 
 // Meme Loader mit Cache
@@ -132,9 +132,7 @@ async function loadMemes() {
   }
 
   loading = false;
-}
-
-function currentList() {
+} function currentList() {
   if (!showingFavs) return posts;
 
   const favs = getFavs();
