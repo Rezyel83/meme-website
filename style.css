@@ -1,0 +1,125 @@
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #2b0a05;
+  color: #fff3e6;
+}
+
+header {
+  padding: 1.2rem;
+  text-align: center;
+  background: #3d0f05;
+  border-bottom: 3px solid #ff5722;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  color: #ff5722;
+  letter-spacing: 1px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+}
+
+select, button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button {
+  background: #ff5722;
+  color: #2b0a05;
+  font-weight: bold;
+}
+
+button:hover { background: #ff8a50; }
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #57190a;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+#viewer {
+  height: calc(100vh - 130px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.nav-arrow {
+  background: #57190a;
+  color: #ff8a50;
+  font-size: 1.4rem;
+  width: 3rem;
+  height: 2.2rem;
+  border-radius: 10px;
+}
+.nav-arrow:hover { background: #ff5722; color: #2b0a05; }
+
+#card {
+  background: #3d0f05;
+  border: 2px solid #ff5722;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 500px;
+  width: 100%;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+}
+
+#card img {
+  width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  background: #1a0603;
+}
+
+#card .body {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#card .title {
+  font-size: 0.95rem;
+}
+
+#card .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #ff8a50;
+}
+
+.heart {
+  cursor: pointer;
+  font-size: 1.3rem;
+  background: none;
+}
+
+#status, #hint {
+  text-align: center;
+  color: #ff8a50;
+  margin: 0.3rem 0;
+}
