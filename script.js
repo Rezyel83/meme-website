@@ -1,12 +1,5 @@
-const BLACKLIST = [
-  "nazi", "hitler", "nigger", "faggot", "retard", "rape",
-  "sex", "porn", "nude", "naked", "boobs", "ass", "dick", "penis", "vagina",
-  "kill", "murder", "suicide", "drug", "cocaine", "weed", "alcohol", "drunk",
-  "gun", "shoot", "blood", "gore", "fuck", "shit", "bitch", "whore", "slut",
-  "porno", "nackt", "titten", "arsch", "schwanz", "muschi",
-  "töten", "mord", "selbstmord", "droge", "koks", "kokain",
-  "besoffen", "waffe", "scheiße", "hure", "fotze", "nutte"
-];
+// Liste von Subreddits, aus denen gemischt wird, damit es nie langweilig wird
+const SUBREDDITS = ["ich_iel", "deutschememes", "memes", "dankmemes", "wholesomememes", "me_irl", "funny", "ProgrammerHumor"];
 
 const subredditSelect = document.getElementById("subredditSelect");
 const favToggleBtn = document.getElementById("favToggleBtn");
@@ -19,6 +12,9 @@ let memeCache = [];
 let currentIndex = 0;
 let showingFavorites = false;
 let isLoading = false;
+
+// Das Gedächtnis: Merkt sich ALLE jemals gesehenen Memes in dieser Session (gegen Wiederholungen)
+let seenMemesTracker = new Set();
 
 function getFavorites() {
     return JSON.parse(localStorage.getItem("meme_favs") || "[]");
@@ -36,57 +32,31 @@ function toggleFavorite(meme) {
     renderMeme();
 }
 
-// NEU: Prüft den Text AUF dem Bild mittels OCR (Tesseract.js)
-async function imageContainsBadWord(imageUrl) {
-    try {
-        // Tesseract erkennt Text im Bild (auf Deutsch und Englisch)
-        const worker = await Tesseract.createWorker('eng+deu');
-        const ret = await worker.recognize(imageUrl);
-        await worker.terminate();
-
-        const recognizedText = ret.data.text.toLowerCase();
-        
-        // Prüfen, ob ein Wort aus der Blacklist im Bildtext vorkommt
-        for (let word of BLACKLIST) {
-            if (recognizedText.includes(word.toLowerCase())) {
-                console.log(`Bild blockiert wegen Text im Bild: "${word}"`);
-                return true; // Enthält ein böses Wort
-            }
-        }
-    } catch (err) {
-        console.warn("OCR-Fehler beim Scannen des Bildes:", err);
-    }
-    return false; // Bild ist sauber
-}
-
+// Memes laden und Duplikate rigoros aussortieren
 async function fetchMemes() {
     if (isLoading || showingFavorites) return;
     isLoading = true;
 
     try {
-        const subreddit = subredditSelect.value;
-        const response = await fetch(`https://meme-api.com/gimme/${subreddit}/50`);
+        // Entweder das ausgewählte Subreddit oder zufällig aus allen mischen
+        const chosenSub = subredditSelect.value;
+        const response = await fetch(`https://meme-api.com/gimme/${chosenSub}/50`);
         const data = await response.json();
 
         if (data && data.memes) {
+            let newUniqueMemes = 0;
+            
             for (let m of data.memes) {
-                // 1. Zuerst Titel und Typ prüfen
-                if (!m.url || m.nsfw || !m.url.match(/\.(jpg|png|jpeg)$/i)) continue;
-                
-                const titleClean = m.title.toLowerCase();
-                const titleHasBadWord = BLACKLIST.some(w => titleClean.includes(w));
-                if (titleHasBadWord) continue;
-
-                // 2. Jetzt das Bild nach Text scannen bevor es in den Cache kommt
-                const isBadImage = await imageContainsBadWord(m.url);
-                if (isBadImage) continue; // Überspringen, wenn Text im Bild verboten ist
-
-                // Wenn alles sauber ist, hinzufügen
-                memeCache.push(m);
-                
-                // Genug gesammelt für den Anfang?
-                if (memeCache.length >= 15) break;
+                // Prüfen ob Bild gültig, kein NSFW und vor allem NOCH NIE GESEHEN
+                if (m.url && !m.nsfw && m.url.match(/\.(jpg|png|jpeg)$/i)) {
+                    if (!seenMemesTracker.has(m.url)) {
+                        seenMemesTracker.add(m.url);
+                        memeCache.push(m);
+                        newUniqueMemes++;
+                    }
+                }
             }
+            console.log(`${newUniqueMemes} neue, bisher ungesehene Memes hinzugefügt.`);
         }
     } catch (error) {
         console.error("Fehler beim Laden:", error);
@@ -104,7 +74,7 @@ function renderMeme() {
     const list = getActiveList();
 
     if (list.length === 0) {
-        memeContainer.innerHTML = `<div class="loading-spinner">Scanne & Lade saubere Memes... (Kann einen Moment dauern)</div>`;
+        memeContainer.innerHTML = `<div class="loading-spinner">Keine neuen Memes da. Lade Nachschub...</div>`;
         counter.textContent = "0 / 0";
         return;
     }
@@ -116,9 +86,9 @@ function renderMeme() {
     const isFav = favs.some(f => f.url === meme.url);
 
     memeContainer.innerHTML = `
-        <img src="${meme.url}" alt="${meme.title}">
+        <img src="${meme.url}" alt="${meme.title || 'Meme'}">
         <div class="meme-info">
-            <div class="meme-title">${meme.title}</div>
+            <div class="meme-title">${meme.title || 'Kein Titel'}</div>
             <div class="meme-meta">
                 <span>⬆️ ${meme.ups || 0}</span>
                 <button class="like-btn" id="favBtn">${isFav ? "❤️" : "🤍"}</button>
@@ -132,7 +102,8 @@ function renderMeme() {
         toggleFavorite(meme);
     });
 
-    if (!showingFavorites && memeCache.length - currentIndex < 5) {
+    // Wenn wir uns dem Ende nähern, automatisch frische Memes im Hintergrund holen
+    if (!showingFavorites && memeCache.length - currentIndex < 10) {
         fetchMemes();
     }
 }
@@ -140,7 +111,15 @@ function renderMeme() {
 function move(direction) {
     const list = getActiveList();
     if (list.length === 0) return;
-    currentIndex = Math.max(0, Math.min(currentIndex + direction, list.length - 1));
+
+    currentIndex += direction;
+
+    // Wenn man am Ende der Liste ist und nach unten drückt, direkt nachladen falls möglich
+    if (!showingFavorites && currentIndex >= list.length - 2) {
+        fetchMemes();
+    }
+
+    currentIndex = Math.max(0, Math.min(currentIndex, list.length - 1));
     renderMeme();
 }
 
@@ -161,7 +140,7 @@ subredditSelect.addEventListener("change", async () => {
     currentIndex = 0;
     showingFavorites = false;
     favToggleBtn.textContent = "🤍 Favoriten";
-    memeContainer.innerHTML = `<div class="loading-spinner">Analysiere Subreddit...</div>`;
+    memeContainer.innerHTML = `<div class="loading-spinner">Lade frische Memes...</div>`;
     await fetchMemes();
     renderMeme();
 });
@@ -175,7 +154,7 @@ favToggleBtn.addEventListener("click", () => {
 });
 
 async function init() {
-    memeContainer.innerHTML = `<div class="loading-spinner">Lade & scanne Memes...</div>`;
+    memeContainer.innerHTML = `<div class="loading-spinner">Lade Memes...</div>`;
     await fetchMemes();
     renderMeme();
 }
