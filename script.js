@@ -10,12 +10,10 @@ let currentIndex = 0;
 let showingFavorites = false;
 let isLoading = false;
 
-// Favoriten aus dem LocalStorage holen
 function getFavorites() {
     return JSON.parse(localStorage.getItem("meme_favs") || "[]");
 }
 
-// Favorit umschalten
 function toggleFavorite(meme) {
     let favs = getFavorites();
     const index = favs.findIndex(m => m.url === meme.url);
@@ -30,29 +28,32 @@ function toggleFavorite(meme) {
     renderMeme();
 }
 
-// Memes von der API laden
 async function fetchMemes() {
     if (isLoading || showingFavorites) return;
     isLoading = true;
 
     try {
         const subreddit = subredditSelect.value;
+        console.log(`Lade Memes von r/${subreddit}...`);
+        
         const response = await fetch(`https://meme-api.com/gimme/${subreddit}/50`);
         const data = await response.json();
 
-        if (data.memes) {
-            // Nur Bilder nehmen, die keine GIFs/Videos sind (falls gewünscht, hier simpel gehalten)
-            const newMemes = data.memes.filter(m => !m.url.endsWith(".gif") && !m.nsfw);
+        if (data && data.memes && data.memes.length > 0) {
+            // Nur Posts mit gültigen Bild-URLs nehmen
+            const newMemes = data.memes.filter(m => m.url && (m.url.endsWith(".jpg") || m.url.endsWith(".png") || m.url.endsWith(".jpeg") || m.url.includes("i.redd.it")));
             memeCache.push(...newMemes);
+            console.log(`${newMemes.length} Memes erfolgreich geladen.`);
+        } else {
+            console.warn("Keine Memes von der API erhalten.");
         }
     } catch (error) {
-        console.error("Fehler beim Laden der Memes:", error);
+        console.error("Netzwerkfehler beim Laden der Memes:", error);
     } finally {
         isLoading = false;
     }
 }
 
-// Aktuelle Liste bestimmen (entweder Cache oder Favoriten)
 function getActiveList() {
     if (showingFavorites) {
         return getFavorites();
@@ -60,17 +61,15 @@ function getActiveList() {
     return memeCache;
 }
 
-// Memes auf dem Bildschirm anzeigen
 function renderMeme() {
     const list = getActiveList();
 
     if (list.length === 0) {
-        memeContainer.innerHTML = `<div class="loading-spinner">${showingFavorites ? "Keine Favoriten gespeichert." : "Lade Memes..."}</div>`;
+        memeContainer.innerHTML = `<div class="loading-spinner">${showingFavorites ? "Noch keine Favoriten gespeichert." : "Lade Memes... (Falls das dauert, wechsle das Subreddit oben)"}</div>`;
         counter.textContent = "0 / 0";
         return;
     }
 
-    // Index im Rahmen halten
     currentIndex = Math.max(0, Math.min(currentIndex, list.length - 1));
     const meme = list[currentIndex];
     
@@ -78,9 +77,9 @@ function renderMeme() {
     const isFav = favs.some(f => f.url === meme.url);
 
     memeContainer.innerHTML = `
-        <img src="${meme.url}" alt="${meme.title}">
+        <img src="${meme.url}" alt="${meme.title || 'Meme'}" onerror="this.src='https://via.placeholder.com/400x300?text=Bild+konnte+nicht+geladen+werden'">
         <div class="meme-info">
-            <div class="meme-title">${meme.title}</div>
+            <div class="meme-title">${meme.title || 'Kein Titel'}</div>
             <div class="meme-meta">
                 <span>⬆️ ${meme.ups || 0}</span>
                 <button class="like-btn" id="favBtn">${isFav ? "❤️" : "🤍"}</button>
@@ -90,18 +89,18 @@ function renderMeme() {
 
     counter.textContent = `${currentIndex + 1} / ${list.length}`;
 
-    // Event-Listener für den Herz-Button
-    document.getElementById("favBtn").addEventListener("click", () => {
-        toggleFavorite(meme);
-    });
+    const favButton = document.getElementById("favBtn");
+    if (favButton) {
+        favButton.addEventListener("click", () => {
+            toggleFavorite(meme);
+        });
+    }
 
-    // Wenn wir uns dem Ende des Caches nähern, im Hintergrund Nachschub holen
     if (!showingFavorites && memeCache.length - currentIndex < 10) {
         fetchMemes();
     }
 }
 
-// Navigation vor/zurück
 function move(direction) {
     const list = getActiveList();
     if (list.length === 0) return;
@@ -117,11 +116,9 @@ function move(direction) {
     renderMeme();
 }
 
-// Event Listener für Buttons
 prevBtn.addEventListener("click", () => move(-1));
 nextBtn.addEventListener("click", () => move(1));
 
-// Tastatur-Steuerung (Pfeiltasten)
 window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         move(-1);
@@ -130,7 +127,6 @@ window.addEventListener("keydown", (e) => {
     }
 });
 
-// Mausrad-Steuerung
 window.addEventListener("wheel", (e) => {
     if (e.deltaY > 0) {
         move(1);
@@ -139,19 +135,17 @@ window.addEventListener("wheel", (e) => {
     }
 }, { passive: true });
 
-// Subreddit wechseln
 subredditSelect.addEventListener("change", async () => {
     memeCache = [];
     currentIndex = 0;
     showingFavorites = false;
     favToggleBtn.textContent = "🤍 Favoriten";
     
-    memeContainer.innerHTML = `<div class="loading-spinner">Lade...</div>`;
+    memeContainer.innerHTML = `<div class="loading-spinner">Lade r/${subredditSelect.value}...</div>`;
     await fetchMemes();
     renderMeme();
 });
 
-// Favoriten-Ansicht umschalten
 favToggleBtn.addEventListener("click", () => {
     showingFavorites = !showingFavorites;
     currentIndex = 0;
@@ -167,8 +161,8 @@ favToggleBtn.addEventListener("click", () => {
     renderMeme();
 });
 
-// Initialer Start beim Laden der Seite
 async function init() {
+    memeContainer.innerHTML = `<div class="loading-spinner">Lade Memes...</div>`;
     await fetchMemes();
     renderMeme();
 }
